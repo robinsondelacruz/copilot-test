@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { hash } from 'bcrypt';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { compare, hash } from 'bcrypt';
 import { envs } from 'src/config';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateUserDto } from './dto';
+import { CreateUserDto, LoginUserDto } from './dto';
 
 @Injectable()
 export class UserService {
@@ -23,5 +23,27 @@ export class UserService {
     delete newUser.password;
 
     return newUser;
+  }
+
+  async login(loginUserDto: LoginUserDto) {
+    const { email, password } = loginUserDto;
+
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const isPasswordValid = await compare(password, user.password);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    delete user.password;
+
+    return user;
   }
 }
