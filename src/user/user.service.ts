@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { compare, hash } from 'bcrypt';
 import { envs } from 'src/config';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -6,7 +7,10 @@ import { CreateUserDto, LoginUserDto } from './dto';
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+  ) {}
 
   async createUser(createUserDto: CreateUserDto) {
     const { name, email, password } = createUserDto;
@@ -44,6 +48,14 @@ export class UserService {
 
     delete user.password;
 
-    return user;
+    const token = this.generateJWT(user.id);
+
+    return { user, token };
+  }
+
+  generateJWT(userId: number) {
+    const payload = { sub: userId };
+
+    return this.jwtService.sign(payload);
   }
 }
